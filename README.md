@@ -17,7 +17,7 @@ Das Projekt nutzt die offizielle [Spotify Web API](https://developer.spotify.com
 ## Installation
 
 1. Klone das Repository:
-git clone https://github.com/kronytone/[projektname].git
+git clone https://github.com/kronytone/Soundguess.git
 
 2. Installiere die Abhängigkeiten:  
 npm install
