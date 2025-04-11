@@ -17,4 +17,21 @@ Das Projekt nutzt die offizielle [Spotify Web API](https://developer.spotify.com
 ## Installation
 
 1. Klone das Repository:
-2. ...
+git clone https://github.com/kronytone/[projektname].git
+
+2. Installiere die Abhängigkeiten:  
+npm install
+
+3. Starte die App im Entwicklungsmodus:  
+npm run dev
+
+4. Öffne die App im Browser:  
+http://localhost:3000
+
+## Rechtlicher Hinweis
+
+Dieses Projekt steht in **keiner Verbindung zu "Hitster"** oder ähnlichen Produkten. Es verwendet ausschließlich öffentlich zugängliche Daten über die Spotify API und speichert keine Musikdateien. Der Name „Hitster“ wird hier nur als Referenz zu einem bekannten Spielkonzept erwähnt.
+
+## Lizenz
+
+Dieses Projekt steht unter der [MIT License](./LICENSE). Du darfst es frei verwenden, ändern und weitergeben.
