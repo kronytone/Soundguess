@@ -6,6 +6,7 @@
   <title>SoundGuess 🔊 – Dein Musikrätsel</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js" defer></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 <style>
   body {
     font-family: 'Segoe UI', sans-serif;
@@ -63,12 +64,17 @@
   #songInfo {
     min-height: 400px;
     margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 0;
   }
 
   #songInfo img {
     display: block;
-    margin: 1em auto;
-    max-width: 100%;
+    margin-bottom: -1.5em; /* Angepasster Wert für Desktop */
+    max-width: 50%;
+    height: auto;
     border-radius: 8px;
   }
 
@@ -94,7 +100,10 @@
 
   .spotify-player-container {
     position: relative;
-    margin-top: 0; /* Entfernt jeglichen Abstand */
+    margin-top: -3.0em; /* Angepasster Wert für Desktop */
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
 
   .overlay-bar {
@@ -120,15 +129,18 @@
     height: 80px;
     z-index: 5;
     border: none;
-    margin-top: 0; /* Verhindert zusätzlichen Abstand */
+    margin-top: 0;
   }
 
   #qrCodeImage {
     display: block;
-    margin: 0; /* Entfernt jeglichen Abstand */
+    margin: 0;
     padding: 0;
-    position: relative; /* Positioniert den QR-Code */
-    top: 0; /* Minimiert den Abstand zum Player */
+    position: relative;
+    top: 0;
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
   }
 
   @media (max-width: 600px) {
@@ -150,9 +162,18 @@
       font-size: 1em;
       width: 100%;
     }
+
+    /* ULTIMATIVER, EXTREMSTER PUSH FÜR MOBILGERÄTE */
+    #songInfo img {
+      max-width: 80%;
+      margin-bottom: -5.0em; /* ABSOLUT EXTREMER NEGATIVER MARGIN */
+    }
+
+    .spotify-player-container {
+      margin-top: -7.0em; /* ABSOLUT EXTREMER NEGATIVER MARGIN */
+    }
   }
 </style>
-
 
 
 </head>
