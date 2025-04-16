@@ -6,143 +6,155 @@
   <title>SoundGuess 🔊 – Dein Musikrätsel</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js" defer></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #1e1e2f, #292940);
-      color: #f0f0f0;
-    }
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #1e1e2f, #292940);
+    color: #f0f0f0;
+  }
 
+  #mainContainer {
+    max-width: 600px;
+    margin: 3em auto;
+    background: #2f2f45;
+    padding: 2em;
+    border-radius: 16px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    text-align: center;
+  }
+
+  h1 {
+    margin-top: 0;
+    font-size: 1.8em;
+    color: #ffcc00;
+  }
+
+  select {
+    margin-top: 1em;
+    padding: 0.6em;
+    border-radius: 8px;
+    border: none;
+    font-size: 1em;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  button {
+    margin-top: 1em;
+    padding: 1em;
+    font-size: 1.1em;
+    border: none;
+    border-radius: 8px;
+    background-color: #ffcc00;
+    color: #1e1e1e;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    min-height: 48px;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  button:hover {
+    background-color: #e6b800;
+  }
+
+  #songInfo {
+    min-height: 400px;
+    margin-top: 10px;
+  }
+
+  #songInfo img {
+    display: block;
+    margin: 1em auto;
+    max-width: 100%;
+    border-radius: 8px;
+  }
+
+  #supabaseId {
+    display: none;
+    margin-top: 1em;
+    font-size: 0.9em;
+    color: #ccc;
+  }
+
+  #showIdToggle {
+    margin-top: 1em;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #66ccff;
+    text-decoration: underline;
+  }
+
+  p {
+    margin: 0.5em 0;
+  }
+
+  .spotify-player-container {
+    position: relative;
+    margin-top: 0; /* Entfernt jeglichen Abstand */
+  }
+
+  .overlay-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 85%;
+    height: 80px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2em;
+    font-weight: bold;
+    border-radius: 8px;
+    background-color: #333;
+    pointer-events: none;
+  }
+
+  .spotify-player {
+    width: 100%;
+    height: 80px;
+    z-index: 5;
+    border: none;
+    margin-top: 0; /* Verhindert zusätzlichen Abstand */
+  }
+
+  #qrCodeImage {
+    display: block;
+    margin: 0; /* Entfernt jeglichen Abstand */
+    padding: 0;
+    position: relative; /* Positioniert den QR-Code */
+    top: 0; /* Minimiert den Abstand zum Player */
+  }
+
+  @media (max-width: 600px) {
     #mainContainer {
-      max-width: 600px;
-      margin: 3em auto;
-      background: #2f2f45;
-      padding: 2em;
-      border-radius: 16px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.3);
-      text-align: center;
+      margin: 1em;
+      padding: 1.5em;
     }
 
     h1 {
-      margin-top: 0;
-      font-size: 1.8em;
-      color: #ffcc00;
-    }
-
-    select {
-      margin-top: 1em;
-      padding: 0.6em;
-      border-radius: 8px;
-      border: none;
-      font-size: 1em;
-      width: 100%;
-      max-width: 300px;
-    }
-
-    button {
-      margin-top: 1em;
-      padding: 1em;
-      font-size: 1.1em;
-      border: none;
-      border-radius: 8px;
-      background-color: #ffcc00;
-      color: #1e1e1e;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      min-height: 48px;
-      width: 100%;
-      max-width: 300px;
-    }
-
-    button:hover {
-      background-color: #e6b800;
-    }
-
-    #songInfo {
-      min-height: 400px;
-      margin-top: 30px;
-    }
-
-    #songInfo img {
-      display: block;
-      margin: 1em auto;
-      max-width: 100%;
-      border-radius: 8px;
-    }
-
-    #supabaseId {
-      display: none;
-      margin-top: 1em;
-      font-size: 0.9em;
-      color: #ccc;
-    }
-
-    #showIdToggle {
-      margin-top: 1em;
-      cursor: pointer;
-      background: none;
-      border: none;
-      color: #66ccff;
-      text-decoration: underline;
-    }
-
-    p {
-      margin: 0.5em 0;
-    }
-
-    .spotify-player-container {
-      position: relative;
-      margin-top: 1em;
+      font-size: 1.5em;
     }
 
     .overlay-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 85%;              /* 85% der Breite */
-  height: 80px;            /* gleiche Höhe wie der Spotify-Player */
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.2em;
-  font-weight: bold;
-  border-radius: 8px;
-  background-color: #333;  /* fallback-Farbe */
-  pointer-events: none;    /* sorgt dafür, dass Play-Button anklickbar bleibt */
-    }
-
-    .spotify-player {
-      width: 100%;
+      font-size: 1em;
       height: 80px;
-      z-index: 5;
-      border: none;
     }
 
-    @media (max-width: 600px) {
-      #mainContainer {
-        margin: 1em;
-        padding: 1.5em;
-      }
-
-      h1 {
-        font-size: 1.5em;
-      }
-
-      .overlay-bar {
-        font-size: 1em;
-        height: 80px;
-      }
-
-      select, button {
-        font-size: 1em;
-        width: 100%;
-      }
+    select, button {
+      font-size: 1em;
+      width: 100%;
     }
-  </style>
+  }
+</style>
+
+
+
 </head>
 <body>
   <div id="mainContainer">
