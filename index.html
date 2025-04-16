@@ -164,236 +164,249 @@
     </div>
   </div>
 
-<script>
-const CLIENT_ID = '9f24d98e138148c3ae35ffada06ba575';  // Deine Client ID
-const CLIENT_SECRET = '8833639ee7084fc5acf616311c651b2e';  // Dein Client Secret
-const REDIRECT_URI = 'https://kronytone.github.io/Soundguess/'; // Deine Redirect URI
-const SCOPES = 'user-read-private user-read-email streaming'; // Scope für die Berechtigungen
+  <script>
+    let supabase;
+    let currentSong = {};
+    let accessToken = '';
+    let spotifyTrackUrl = '';
+    let qrCodeUrl = '';
+    let selectedCategory = localStorage.getItem('selectedCategory') || '';
+    let playedSongsPerCategory = {};
 
-let supabase;
-let currentSong = {};
-let accessToken = '';  // Variable für das Access Token
-let selectedCategory = localStorage.getItem('selectedCategory') || '';
-let playedSongsPerCategory = {};
+    window.onload = function () {
+            const supabaseUrl = 'https://krhqarmgwbtweypujzgt.supabase.co'; // Deine Supabase-URL
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyaHFhcm1nd2J0d2V5cHVqemd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwNTQ2NzcsImV4cCI6MjA1OTYzMDY3N30.Ge_uG7yP_S6_YGkbphUGdeWVUkT_IBuo4czY9rHdF5g'; // Dein API-Schlüssel
+      supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-window.onload = function () {
-  // Supabase Setup
-  const supabaseUrl = 'https://krhqarmgwbtweypujzgt.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyaHFhcm1nd2J0d2V5cHVqemd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwNTQ2NzcsImV4cCI6MjA1OTYzMDY3N30.Ge_uG7yP_S6_YGkbphUGdeWVUkT_IBuo4czY9rHdF5g';
-  supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+      getSpotifyAccessToken();
+      loadCategories();
 
-  // Überprüfen, ob das Access Token schon gespeichert wurde
-  const storedToken = getStoredAccessToken();
-  if (storedToken) {
-    accessToken = storedToken;
-    getRandomSongFromDB();
-  } else {
-    // Wenn kein Token da ist, wird der Login-Flow gestartet
-    redirectToSpotifyLogin();
-  }
+      document.getElementById('categoryFilter').addEventListener('change', function () {
+        selectedCategory = this.value;
+        localStorage.setItem('selectedCategory', selectedCategory);
+        if (!playedSongsPerCategory[selectedCategory]) {
+          playedSongsPerCategory[selectedCategory] = [];
+        }
+        updateBackgroundByCategory(selectedCategory);
+        getRandomSongFromDB();
+      });
 
-  loadCategories();
+      setTimeout(() => {
+        if (selectedCategory) {
+          document.getElementById('categoryFilter').value = selectedCategory;
+          updateBackgroundByCategory(selectedCategory);
+        }
+      }, 500);
+    };
 
-  document.getElementById('categoryFilter').addEventListener('change', function () {
-    selectedCategory = this.value;
-    localStorage.setItem('selectedCategory', selectedCategory);
-    if (!playedSongsPerCategory[selectedCategory]) {
-      playedSongsPerCategory[selectedCategory] = [];
-    }
-    updateBackgroundByCategory(selectedCategory);
-    getRandomSongFromDB();
-  });
+    function getSpotifyAccessToken() {
+      const CLIENT_ID = '9f24d98e138148c3ae35ffada06ba575';
+      const CLIENT_SECRET = '8833639ee7084fc5acf616311c651b2e';
+      const url = 'https://accounts.spotify.com/api/token';
+      const headers = {
+        'Authorization': 'Basic ' + btoa(CLIENT_ID + ':' + CLIENT_SECRET),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      };
+      const body = 'grant_type=client_credentials';
 
-  setTimeout(() => {
-    if (selectedCategory) {
-      document.getElementById('categoryFilter').value = selectedCategory;
-      updateBackgroundByCategory(selectedCategory);
-    }
-  }, 500);
-};
-
-// Funktion, um den Benutzer zu Spotify zu leiten und ihn anzumelden
-function redirectToSpotifyLogin() {
-  const authUrl = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}`;
-  window.location.href = authUrl;  // Benutzer zur Spotify-Login-Seite weiterleiten
-}
-
-// Funktion, um das Access Token aus der URL zu extrahieren
-function extractAccessTokenFromUrl() {
-  const hash = window.location.hash;
-  if (hash && hash.includes('access_token')) {
-    const params = new URLSearchParams(hash.substring(1));
-    const token = params.get('access_token');
-    localStorage.setItem('spotify_access_token', token);  // Token im Local Storage speichern
-    window.location.hash = '';  // URL aufräumen
-    return token;
-  }
-  return null;
-}
-
-// Funktion, um das gespeicherte Access Token abzurufen
-function getStoredAccessToken() {
-  return localStorage.getItem('spotify_access_token');
-}
-
-// Funktion, um den Spotify-Login zu beenden
-function logoutSpotify() {
-  localStorage.removeItem('spotify_access_token');  // Access Token löschen
-  location.reload();
-}
-
-function getRandomSongFromDB() {
-  let query = supabase.from('Songs').select('id, name, spotify_id, category');
-
-  if (selectedCategory) {
-    query = query.eq('category', selectedCategory);
-  }
-
-  query.then(({ data, error }) => {
-    if (error || !data || data.length === 0) {
-      alert("Keine Songs gefunden.");
-      return;
+      $.post({ url, headers, data: body }, function (response) {
+        accessToken = response.access_token;
+        getRandomSongFromDB();
+      }).fail(function () {
+        alert("Fehler beim Abrufen des Spotify-Tokens.");
+      });
     }
 
-    const alreadyPlayed = playedSongsPerCategory[selectedCategory] || [];
-    const remainingSongs = data.filter(song => !alreadyPlayed.includes(song.id));
+    async function loadCategories() {
+      let allCategories = [];
+      let page = 0;
+      let moreData = true;
 
-    if (remainingSongs.length === 0) {
-      alert("Alle Songs in dieser Kategorie wurden gespielt. Die Liste wird zurückgesetzt!");
-      playedSongsPerCategory[selectedCategory] = [];
-      getRandomSongFromDB();
-      return;
-    }
+      while (moreData) {
+        const { data, error } = await supabase
+          .from('Songs')
+          .select('category')
+          .range(page * 1000, (page + 1) * 1000 - 1); // 1000 ist das Limit pro Seite
 
-    const song = remainingSongs[Math.floor(Math.random() * remainingSongs.length)];
-    currentSong = song;
+        if (error) {
+          console.error('Fehler beim Laden der Kategorien:', error);
+          return;
+        }
 
-    if (!playedSongsPerCategory[selectedCategory]) {
-      playedSongsPerCategory[selectedCategory] = [];
-    }
-    playedSongsPerCategory[selectedCategory].push(song.id);
+        if (data && data.length > 0) {
+          allCategories = allCategories.concat(data.map(song => song.category).filter(Boolean));
+        }
 
-    document.getElementById('songInfo').innerHTML = '<img src="" alt="QR Code" id="qrCodeImage" />';
+        if (data.length < 1000) {
+          moreData = false;
+        }
 
-    getSpotifyTrackInfoById(song.spotify_id);
-    const revealBtn = document.getElementById('revealSongButton');
-    revealBtn.style.display = 'inline';
-    revealBtn.innerText = 'Auflösen';
-    revealBtn.onclick = revealSongInfo;
-
-    // Spotify Player einbinden
-    const spotifyPlayer = document.getElementById('spotifyPlayer');
-    spotifyPlayer.src = `https://open.spotify.com/embed/track/${song.spotify_id}`;
-  });
-}
-
-function getSpotifyTrackInfoById(spotifyId) {
-  if (!accessToken) {
-    console.warn("Noch kein Spotify-Token verfügbar.");
-    return;
-  }
-
-  $.ajax({
-    url: `https://api.spotify.com/v1/tracks/${spotifyId}`,
-    headers: { 'Authorization': `Bearer ${accessToken}` },
-    success: function(song) {
-      const spotifyTrackUrl = `https://open.spotify.com/track/${song.id}`;
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(spotifyTrackUrl)}&size=300x300`;
-
-      currentSong.artist = song.artists[0].name;
-      currentSong.year = song.album.release_date.split('-')[0];
-      currentSong.album = song.album.name;
-      currentSong.album_cover = song.album.images[0].url;
-      currentSong.title = song.name;
-
-      // Hier wird die dominante Farbe des Albumcovers ermittelt
-      extractDominantColor(song.album.images[0].url);
-
-      const qrCodeImage = document.getElementById('qrCodeImage');
-      if (qrCodeImage) {
-        qrCodeImage.src = qrCodeUrl;
-        qrCodeImage.style.display = 'block';
+        page++;
       }
-    },
-    error: function() {
-      alert('Fehler beim Abrufen des Songs per ID.');
-    }
-  });
-}
 
-function extractDominantColor(imageUrl) {
-  const img = new Image();
-  img.src = imageUrl;
-  img.crossOrigin = "Anonymous";  // CORS für das Bild erlauben
+      const uniqueCategories = [...new Set(allCategories)];
+      const select = document.getElementById('categoryFilter');
 
-  img.onload = function() {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.drawImage(img, 0, 0, img.width, img.height);
-
-    // Pixeldaten des Bildes extrahieren
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const pixels = imageData.data;
-    const length = pixels.length;
-    let r = 0, g = 0, b = 0;
-
-    for (let i = 0; i < length; i += 4) {
-      r += pixels[i];
-      g += pixels[i + 1];
-      b += pixels[i + 2];
+      uniqueCategories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        select.appendChild(option);
+      });
     }
 
-    // Durchschnittliche Farbe berechnen
-    r = Math.floor(r / (length / 4));
-    g = Math.floor(g / (length / 4));
-    b = Math.floor(b / (length / 4));
+    async function getRandomSongFromDB() {
+      let query = supabase.from('Songs').select('id, name, spotify_id, category');
 
-    // Farbe der Overlay-Bar anpassen
-    const overlayBar = document.querySelector('.overlay-bar');
-    overlayBar.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-  };
-}
+      if (selectedCategory) {
+        query = query.eq('category', selectedCategory);
+      }
 
-function revealSongInfo() {
-  const revealBtn = document.getElementById('revealSongButton');
+      const { data, error } = await query;
 
-  document.getElementById('songInfo').innerHTML = `
-    <h3>Titel: ${currentSong.title}</h3>
-    <p><strong>Interpret:</strong> ${currentSong.artist}</p>
-    <p><strong>Erscheinungsjahr:</strong> ${currentSong.year}</p>
-    <p><strong>Album:</strong> ${currentSong.album}</p>
-    <img src="${currentSong.album_cover}" alt="Album Cover" />
-    <div id="supabaseId"><strong>Supabase-ID:</strong> ${currentSong.id}</div>
-    <button id="showIdToggle" onclick="toggleSupabaseId()">Supabase-ID ein-/ausblenden</button>
-  `;
+      if (error || !data || data.length === 0) {
+        alert("Keine Songs gefunden.");
+        return;
+      }
 
-  revealBtn.innerText = 'Neuer Song';
-  revealBtn.onclick = function () {
-    revealBtn.style.display = 'none';
-    getRandomSongFromDB();
-  };
-}
+      const alreadyPlayed = playedSongsPerCategory[selectedCategory] || [];
+      const remainingSongs = data.filter(song => !alreadyPlayed.includes(song.id));
 
-function toggleSupabaseId() {
-  const el = document.getElementById('supabaseId');
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
+      if (remainingSongs.length === 0) {
+        alert("Alle Songs in dieser Kategorie wurden gespielt. Die Liste wird zurückgesetzt!");
+        playedSongsPerCategory[selectedCategory] = [];
+        getRandomSongFromDB();
+        return;
+      }
 
-function updateBackgroundByCategory(category) {
-  const container = document.getElementById('mainContainer');
-  if (!category) {
-    container.style.background = '#2f2f45';
-    return;
-  }
+      const song = remainingSongs[Math.floor(Math.random() * remainingSongs.length)];
+      currentSong = song;
 
-  const hash = [...category].reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const hue1 = hash % 360;
-  const hue2 = (hue1 + 60) % 360;
-  container.style.background = `linear-gradient(135deg, hsl(${hue1}, 70%, 40%), hsl(${hue2}, 70%, 50%))`;
-}
-</script>
+      if (!playedSongsPerCategory[selectedCategory]) {
+        playedSongsPerCategory[selectedCategory] = [];
+      }
+      playedSongsPerCategory[selectedCategory].push(song.id);
 
+      document.getElementById('songInfo').innerHTML = '<img src="" alt="QR Code" id="qrCodeImage" />';
+
+      getSpotifyTrackInfoById(song.spotify_id);
+      const revealBtn = document.getElementById('revealSongButton');
+      revealBtn.style.display = 'inline';
+      revealBtn.innerText = 'Auflösen';
+      revealBtn.onclick = revealSongInfo;
+
+      // Spotify Player einbinden
+      const spotifyPlayer = document.getElementById('spotifyPlayer');
+      spotifyPlayer.src = `https://open.spotify.com/embed/track/${song.spotify_id}`;
+    }
+
+    function getSpotifyTrackInfoById(spotifyId) {
+      if (!accessToken) {
+        console.warn("Noch kein Spotify-Token verfügbar.");
+        return;
+      }
+
+      $.ajax({
+        url: `https://api.spotify.com/v1/tracks/${spotifyId}`,
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+        success: function(song) {
+          spotifyTrackUrl = `https://open.spotify.com/track/${song.id}`;
+          qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(spotifyTrackUrl)}&size=300x300`;
+
+          currentSong.artist = song.artists[0].name;
+          currentSong.year = song.album.release_date.split('-')[0];
+          currentSong.album = song.album.name;
+          currentSong.album_cover = song.album.images[0].url;
+          currentSong.title = song.name;
+
+          // Hier wird die dominante Farbe des Albumcovers ermittelt
+          extractDominantColor(song.album.images[0].url);
+
+          const qrCodeImage = document.getElementById('qrCodeImage');
+          if (qrCodeImage) {
+            qrCodeImage.src = qrCodeUrl;
+            qrCodeImage.style.display = 'block';
+          }
+        },
+        error: function() {
+          alert('Fehler beim Abrufen des Songs per ID.');
+        }
+      });
+    }
+
+    // Funktion zum Extrahieren der dominanten Farbe aus dem Albumcover
+    function extractDominantColor(imageUrl) {
+      const img = new Image();
+      img.src = imageUrl;
+      img.crossOrigin = "Anonymous";  // CORS für das Bild erlauben
+
+      img.onload = function() {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0, img.width, img.height);
+
+        // Pixeldaten des Bildes extrahieren
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = imageData.data;
+        const length = pixels.length;
+        let r = 0, g = 0, b = 0;
+
+        for (let i = 0; i < length; i += 4) {
+          r += pixels[i];
+          g += pixels[i + 1];
+          b += pixels[i + 2];
+        }
+
+        // Durchschnittliche Farbe berechnen
+        r = Math.floor(r / (length / 4));
+        g = Math.floor(g / (length / 4));
+        b = Math.floor(b / (length / 4));
+
+        // Farbe der Overlay-Bar anpassen
+        const overlayBar = document.querySelector('.overlay-bar');
+        overlayBar.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+      };
+    }
+
+    function revealSongInfo() {
+      const revealBtn = document.getElementById('revealSongButton');
+
+      document.getElementById('songInfo').innerHTML = `
+        <h3>Titel: ${currentSong.title}</h3>
+        <p><strong>Interpret:</strong> ${currentSong.artist}</p>
+        <p><strong>Erscheinungsjahr:</strong> ${currentSong.year}</p>
+        <p><strong>Album:</strong> ${currentSong.album}</p>
+        <img src="${currentSong.album_cover}" alt="Album Cover" />
+        <div id="supabaseId"><strong>Supabase-ID:</strong> ${currentSong.id}</div>
+        <button id="showIdToggle" onclick="toggleSupabaseId()">Supabase-ID ein-/ausblenden</button>
+      `;
+
+      revealBtn.innerText = 'Neuer Song';
+      revealBtn.onclick = function () {
+        revealBtn.style.display = 'none';
+        getRandomSongFromDB();
+      };
+    }
+
+    function toggleSupabaseId() {
+      const el = document.getElementById('supabaseId');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function updateBackgroundByCategory(category) {
+      const container = document.getElementById('mainContainer');
+      if (!category) {
+        container.style.background = '#2f2f45';
+        return;
+      }
+
+      const hash = [...category].reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const hue1 = hash % 360;
+      const hue2 = (hue1 + 60) % 360;
+      container.style.background = `linear-gradient(135deg, hsl(${hue1}, 70%, 40%), hsl(${hue2}, 70%, 50%))`;
+    }
+  </script>
 </body>
 </html>
