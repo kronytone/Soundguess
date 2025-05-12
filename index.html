@@ -95,7 +95,16 @@
     font-size: 0.9em;
     color: #ccc;
   }
-  
+
+  #showIdToggle {
+    margin-top: 1em;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #66ccff;
+    text-decoration: underline;
+  }
+
   p {
     margin: 0.5em 0;
   }
@@ -104,7 +113,7 @@
     position: relative;
     margin-top: -2.5em;
     width: 100%;
-    display: flex; /* Player deaktiviert */
+    display: flex; 
     justify-content: center;
   }
 
@@ -262,87 +271,102 @@
     }
 
     async function loadCategories() {
-      let allCategories = [];
-      let page = 0;
-      let moreData = true;
+  let allCategories = [];
+  let page = 0;
+  let moreData = true;
 
-      while (moreData) {
-        const { data, error } = await supabase
-          .from('Songs')
-          .select('category')
-          .range(page * 1000, (page + 1) * 1000 - 1); // 1000 ist das Limit pro Seite
+  while (moreData) {
+    const { data, error } = await supabase
+      .from('Songs')
+      .select('category')
+      .range(page * 1000, (page + 1) * 1000 - 1); // 1000 ist das Limit pro Seite
 
-        if (error) {
-          console.error('Fehler beim Laden der Kategorien:', error);
-          return;
-        }
-
-        if (data && data.length > 0) {
-          allCategories = allCategories.concat(data.map(song => song.category).filter(Boolean));
-        }
-
-        if (data.length < 1000) {
-          moreData = false;
-        }
-
-        page++;
-      }
-
-      const uniqueCategories = [...new Set(allCategories)];
-      const select = document.getElementById('categoryFilter');
-
-      uniqueCategories.forEach(category => {
-        const option = document.createElement('option');
-        option.value = category;
-        option.textContent = category;
-        select.appendChild(option);
-      });
+    if (error) {
+      console.error('Fehler beim Laden der Kategorien:', error);
+      return;
     }
+
+    if (data && data.length > 0) {
+      allCategories = allCategories.concat(data.map(song => song.category).filter(Boolean));
+    }
+
+    if (data.length < 1000) {
+      moreData = false;  // Stoppt die Schleife, wenn weniger als 1000 Datensätze auf der letzten Seite
+    }
+
+    page++;
+  }
+
+  const uniqueCategories = [...new Set(allCategories)];
+  const select = document.getElementById('categoryFilter');
+
+  uniqueCategories.forEach(category => {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    select.appendChild(option);
+  });
+}
 
     async function getRandomSongFromDB() {
-      let query = supabase.from('Songs').select('id, name, spotify_id, category');
+  let allSongs = [];
+  let page = 0;
+  let moreData = true;
 
-      if (selectedCategory) {
-        query = query.eq('category', selectedCategory);
-      }
+  while (moreData) {
+    let query = supabase.from('Songs').select('id, name, spotify_id, category');
 
-      const { data, error } = await query;
-
-      if (error || !data || data.length === 0) {
-        alert("Keine Songs gefunden.");
-        return;
-      }
-
-      const alreadyPlayed = playedSongsPerCategory[selectedCategory] || [];
-      const remainingSongs = data.filter(song => !alreadyPlayed.includes(song.id));
-
-      if (remainingSongs.length === 0) {
-        alert("Alle Songs in dieser Kategorie wurden gespielt. Die Liste wird zurückgesetzt!");
-        playedSongsPerCategory[selectedCategory] = [];
-        getRandomSongFromDB();
-        return;
-      }
-
-      const song = remainingSongs[Math.floor(Math.random() * remainingSongs.length)];
-      currentSong = song;
-
-      if (!playedSongsPerCategory[selectedCategory]) {
-        playedSongsPerCategory[selectedCategory] = [];
-      }
-      playedSongsPerCategory[selectedCategory].push(song.id);
-
-      document.getElementById('songInfo').innerHTML = '<img src="" alt="QR Code" id="qrCodeImage" />';
-
-      getSpotifyTrackInfoById(song.spotify_id);
-      const revealBtn = document.getElementById('revealSongButton');
-      revealBtn.style.display = 'inline';
-      revealBtn.innerText = 'Auflösen';
-      revealBtn.onclick = revealSongInfo;
-
-      // Spotify Player einbinden
-      const spotifyPlayer = document.getElementById('spotifyPlayer');
-      spotifyPlayer.src = `https://open.spotify.com/embed/track/${song.spotify_id}`;
+    if (selectedCategory) {
+      query = query.eq('category', selectedCategory);
     }
+
+    const { data, error } = await query.range(page * 1000, (page + 1) * 1000 - 1);
+
+    if (error || !data || data.length === 0) {
+      alert("Keine Songs gefunden.");
+      return;
+    }
+
+    allSongs = allSongs.concat(data);
+
+    if (data.length < 1000) {
+      moreData = false;
+    }
+
+    page++;
+  }
+
+  // Weiter mit der Auswahl eines zufälligen Songs aus der abgerufenen Liste
+  const alreadyPlayed = playedSongsPerCategory[selectedCategory] || [];
+  const remainingSongs = allSongs.filter(song => !alreadyPlayed.includes(song.id));
+
+  if (remainingSongs.length === 0) {
+    alert("Alle Songs in dieser Kategorie wurden gespielt. Die Liste wird zurückgesetzt!");
+    playedSongsPerCategory[selectedCategory] = [];
+    getRandomSongFromDB();
+    return;
+  }
+
+  const song = remainingSongs[Math.floor(Math.random() * remainingSongs.length)];
+  currentSong = song;
+
+  if (!playedSongsPerCategory[selectedCategory]) {
+    playedSongsPerCategory[selectedCategory] = [];
+  }
+  playedSongsPerCategory[selectedCategory].push(song.id);
+
+  document.getElementById('songInfo').innerHTML = '<img src="" alt="QR Code" id="qrCodeImage" />';
+
+  getSpotifyTrackInfoById(song.spotify_id);
+  const revealBtn = document.getElementById('revealSongButton');
+  revealBtn.style.display = 'inline';
+  revealBtn.innerText = 'Auflösen';
+  revealBtn.onclick = revealSongInfo;
+
+  // Spotify Player einbinden
+  const spotifyPlayer = document.getElementById('spotifyPlayer');
+  spotifyPlayer.src = `https://open.spotify.com/embed/track/${song.spotify_id}`;
+}
 
     function getSpotifyTrackInfoById(spotifyId) {
       if (!accessToken) {
@@ -389,7 +413,7 @@
         const ctx = canvas.getContext("2d");
         canvas.width = img.width;
         canvas.height = img.height;
-        ctx.drawImage(img, 0, 0, img.width, img.height);
+        ctx.drawImage(img, 0, 0, 20, 20);
 
         // Pixeldaten des Bildes extrahieren
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -441,6 +465,18 @@
     getRandomSongFromDB();
   };
 }
+    function updateBackgroundByCategory(category) {
+      const container = document.getElementById('mainContainer');
+      if (!category) {
+        container.style.background = '#2f2f45';
+        return;
+      }
+
+      const hash = [...category].reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const hue1 = hash % 360;
+      const hue2 = (hue1 + 60) % 360;
+      container.style.background = `linear-gradient(135deg, hsl(${hue1}, 70%, 40%), hsl(${hue2}, 70%, 50%))`;
+    }
   </script>
 </body>
 </html>
