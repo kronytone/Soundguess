@@ -67,20 +67,26 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
     padding-bottom: 0;
-  }
-
-  #songInfo p {
-    margin: 0.5em 0;
-    line-height: 1.0; /* Reduzierter Zeilenabstand */
   }
 
   #songInfo img {
     display: block;
-    margin-bottom: -1.5em; /* Angepasster Wert für Desktop */
-    max-width: 50%;
+    margin-bottom: 1em;
+    max-width: 80%;
     height: auto;
     border-radius: 8px;
+  }
+
+  #songInfo h3,
+  #songInfo p {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    text-align: center;
+    max-width: 90%;
+    line-height: 1.4;
+    margin: 0.4em 0;
   }
 
   #supabaseId {
@@ -105,9 +111,9 @@
 
   .spotify-player-container {
     position: relative;
-    margin-top: -3.0em; /* Angepasster Wert für Desktop */
+    margin-top: -2.5em;
     width: 100%;
-    display: flex;
+    display: none; /* Player deaktiviert */
     justify-content: center;
   }
 
@@ -163,18 +169,24 @@
       height: 80px;
     }
 
-    select, button {
+    select,
+    button {
       font-size: 1em;
       width: 100%;
     }
 
     #songInfo img {
-      max-width: 80%;
-      margin-bottom: -5.0em;
+      max-width: 90%;
+      margin-bottom: 1em;
     }
 
     .spotify-player-container {
-      margin-top: -7.0em;
+      margin-top: -5.0em;
+    }
+
+    #songInfo h3,
+    #songInfo p {
+      font-size: 1em;
     }
   }
 </style>
@@ -412,42 +424,32 @@
     }
 
     function revealSongInfo() {
-      const revealBtn = document.getElementById('revealSongButton');
+  const revealBtn = document.getElementById('revealSongButton');
 
-      document.getElementById('songInfo').innerHTML = `
-        <h3>Titel: ${currentSong.title}</h3>
-        <p><strong>Interpret:</strong> ${currentSong.artist}</p>
-        <p><strong>Erscheinungsjahr:</strong> ${currentSong.year}</p>
-        <p><strong>Album:</strong> ${currentSong.album}</p>
-        <img src="${currentSong.album_cover}" alt="Album Cover" />
-        <div id="supabaseId"><strong>Supabase-ID:</strong> ${currentSong.id}</div>
-        <button id="showIdToggle" onclick="toggleSupabaseId()">Supabase-ID ein-/ausblenden</button>
-      `;
+  // Player ausblenden
+  const playerContainer = document.querySelector('.spotify-player-container');
+  if (playerContainer) {
+    playerContainer.style.display = 'none';
+  }
 
-      revealBtn.innerText = 'Neuer Song';
-      revealBtn.onclick = function () {
-        revealBtn.style.display = 'none';
-        getRandomSongFromDB();
-      };
+  document.getElementById('songInfo').innerHTML = `
+    <h3>Titel: ${currentSong.title}</h3>
+    <p><strong>Interpret:</strong> ${currentSong.artist}</p>
+    <p><strong>Erscheinungsjahr:</strong> ${currentSong.year}</p>
+    <p><strong>Album:</strong> ${currentSong.album}</p>
+    <img src="${currentSong.album_cover}" alt="Album Cover" />
+  `;
+
+  revealBtn.innerText = 'Neuer Song';
+  revealBtn.onclick = function () {
+    // Player wieder einblenden
+    if (playerContainer) {
+      playerContainer.style.display = 'flex';
     }
-
-    function toggleSupabaseId() {
-      const el = document.getElementById('supabaseId');
-      el.style.display = el.style.display === 'none' ? 'block' : 'none';
-    }
-
-    function updateBackgroundByCategory(category) {
-      const container = document.getElementById('mainContainer');
-      if (!category) {
-        container.style.background = '#2f2f45';
-        return;
-      }
-
-      const hash = [...category].reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const hue1 = hash % 360;
-      const hue2 = (hue1 + 60) % 360;
-      container.style.background = `linear-gradient(135deg, hsl(${hue1}, 70%, 40%), hsl(${hue2}, 70%, 50%))`;
-    }
+    revealBtn.style.display = 'none';
+    getRandomSongFromDB();
+  };
+}
   </script>
 </body>
 </html>
