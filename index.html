@@ -6,7 +6,6 @@
   <title>SoundGuess 🔊 – Dein Musikrätsel</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
@@ -247,6 +246,9 @@
     await loadCategories();
     await fetchSpotifyToken();
     await getRandomSongFromDB();
+
+    // Token alle 55 Minuten automatisch erneuern (läuft nach 60 Min ab)
+    setInterval(fetchSpotifyToken, 55 * 60 * 1000);
   });
 
   // ─── Spotify Token über Edge Function ────────────────────────────────────
@@ -453,6 +455,7 @@
       document.getElementById('overlayBar').style.backgroundColor = `rgb(${r},${g},${b})`;
     };
   }
+  // ─── Song auflösen ────────────────────────────────────────────────────────
   function revealSongInfo() {
     document.getElementById('playerContainer').style.display = 'none';
 
