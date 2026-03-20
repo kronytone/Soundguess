@@ -4,116 +4,165 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SoundGuess 🔊 – Dein Musikrätsel</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js" defer></script>
+
+  <!-- FIX 1: defer entfernt – Supabase muss synchron geladen sein -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+
 <style>
+  :root {
+    --bg-dark: #0f0f1a;
+    --card-bg: #18182b;
+    --accent: #ffcc00;
+    --accent-dim: #c9a000;
+    --text: #f0f0f0;
+    --text-muted: #888;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; }
+
   body {
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     margin: 0;
     padding: 0;
-    background: linear-gradient(135deg, #1e1e2f, #292940);
-    color: #f0f0f0;
+    min-height: 100vh;
+    background: var(--bg-dark);
+    color: var(--text);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
   }
 
   #mainContainer {
-    max-width: 600px;
-    margin: 3em auto;
-    background: #2f2f45;
+    max-width: 560px;
+    width: 100%;
+    margin: 2.5em auto;
+    background: var(--card-bg);
     padding: 2em;
-    border-radius: 16px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    box-shadow: 0 0 60px rgba(0,0,0,0.5);
     text-align: center;
+    transition: background 0.6s ease;
   }
 
   h1 {
-    margin-top: 0;
-    font-size: 1.8em;
-    color: #ffcc00;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.9em;
+    font-weight: 800;
+    color: var(--accent);
+    margin: 0 0 0.2em 0;
+    letter-spacing: -0.5px;
+  }
+
+  .subtitle {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-bottom: 1.5em;
+  }
+
+  label {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
   }
 
   select {
-    margin-top: 1em;
-    padding: 0.6em;
-    border-radius: 8px;
-    border: none;
+    margin-top: 0.5em;
+    padding: 0.7em 1em;
+    border-radius: var(--radius);
+    border: 1px solid #333;
     font-size: 1em;
+    font-family: 'DM Sans', sans-serif;
+    background: #222238;
+    color: var(--text);
     width: 100%;
-    max-width: 300px;
-  }
-
-  button {
-    margin-top: 1em;
-    padding: 1em;
-    font-size: 1.1em;
-    border: none;
-    border-radius: 8px;
-    background-color: #ffcc00;
-    color: #1e1e1e;
+    max-width: 340px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
-    min-height: 48px;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1em center;
+  }
+
+  select:focus { border-color: var(--accent); }
+
+  .btn {
+    display: inline-block;
+    margin-top: 1.2em;
+    padding: 0.85em 1.5em;
+    font-size: 1em;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--accent);
+    color: #111;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
     width: 100%;
-    max-width: 300px;
+    max-width: 340px;
+    letter-spacing: 0.3px;
   }
 
-  button:hover {
-    background-color: #e6b800;
-  }
+  .btn:hover { background: var(--accent-dim); }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+  /* Song Info Area */
   #songInfo {
-    min-height: 400px;
-    margin-top: 10px;
+    min-height: 220px;
+    margin-top: 1.5em;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    padding-bottom: 0;
+    justify-content: center;
   }
 
-  #songInfo img {
-    display: block;
+  #songInfo img.qr-code {
+    max-width: 200px;
+    border-radius: 10px;
+    border: 3px solid #333;
+  }
+
+  #songInfo img.album-cover {
+    max-width: 220px;
+    border-radius: var(--radius);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
     margin-bottom: 1em;
-    max-width: 80%;
-    height: auto;
-    border-radius: 8px;
+    animation: fadeIn 0.4s ease;
   }
 
-  #songInfo h3,
-  #songInfo p {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    text-align: center;
-    max-width: 90%;
-    line-height: 1.4;
-    margin: 0.4em 0;
+  .song-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3em;
+    font-weight: 800;
+    margin: 0.2em 0;
+    color: var(--text);
   }
 
-  #supabaseId {
-    display: none;
-    margin-top: 1em;
-    font-size: 0.9em;
-    color: #ccc;
+  .song-meta {
+    font-size: 0.95em;
+    color: var(--text-muted);
+    margin: 0.2em 0;
   }
 
-  #showIdToggle {
-    margin-top: 1em;
-    cursor: pointer;
-    background: none;
-    border: none;
-    color: #66ccff;
-    text-decoration: underline;
+  .song-meta strong {
+    color: var(--text);
   }
 
-  p {
-    margin: 0.5em 0;
-  }
-
+  /* Spotify Player */
   .spotify-player-container {
     position: relative;
-    margin-top: -2.5em;
+    margin-top: 1.5em;
     width: 100%;
-    display: flex; 
+    display: flex;
     justify-content: center;
   }
 
@@ -121,362 +170,314 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 85%;
+    width: 100%;
     height: 80px;
     z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 1.2em;
-    font-weight: bold;
-    border-radius: 8px;
-    background-color: #333;
+    font-family: 'Syne', sans-serif;
+    font-size: 1em;
+    font-weight: 700;
+    border-radius: 12px;
+    background-color: #2a2a3a;
     pointer-events: none;
+    transition: background-color 0.5s ease;
+    letter-spacing: 0.5px;
   }
 
   .spotify-player {
     width: 100%;
     height: 80px;
-    z-index: 5;
     border: none;
-    margin-top: 0;
+    border-radius: 12px;
   }
 
-  #qrCodeImage {
-    display: block;
-    margin: 0;
-    padding: 0;
-    position: relative;
-    top: 0;
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
+  /* Status message */
+  #statusMsg {
+    margin-top: 1em;
+    font-size: 0.85em;
+    color: var(--text-muted);
+    min-height: 1.2em;
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
   @media (max-width: 600px) {
-    #mainContainer {
-      margin: 1em;
-      padding: 1.5em;
-    }
-
-    h1 {
-      font-size: 1.5em;
-    }
-
-    .overlay-bar {
-      font-size: 1em;
-      height: 80px;
-    }
-
-    select,
-    button {
-      font-size: 1em;
-      width: 100%;
-    }
-
-    #songInfo img {
-      max-width: 90%;
-      margin-bottom: 1em;
-    }
-
-    .spotify-player-container {
-      margin-top: -5.0em;
-    }
-
-    #songInfo h3,
-    #songInfo p {
-      font-size: 1em;
-    }
+    #mainContainer { margin: 1em; padding: 1.5em; }
+    h1 { font-size: 1.5em; }
   }
 </style>
-
-
-
-
-
-
 </head>
 <body>
-  <div id="mainContainer">
-    <h1>🎧 SoundGuess 🔊 – Dein Musikrätsel</h1>
+<div id="mainContainer">
+  <h1>🎧 SoundGuess</h1>
+  <p class="subtitle">Erkenne den Song – bevor er sich verrät</p>
 
-    <label for="categoryFilter">Kategorie:</label><br/>
-    <select id="categoryFilter">
-      <option value="">Alle</option>
-    </select>
+  <label for="categoryFilter">Kategorie</label><br/>
+  <select id="categoryFilter" disabled>
+    <option value="">Alle</option>
+  </select>
 
-    <br/>
-    <button id="revealSongButton" style="display:none;">Auflösen</button>
+  <br/>
+  <button class="btn" id="revealSongButton" style="display:none;">Auflösen</button>
 
-    <div id="songInfo"></div>
+  <div id="songInfo"></div>
+  <div id="statusMsg">Kategorien werden geladen …</div>
 
-    <div class="spotify-player-container">
-      <div class="overlay-bar">Hier direkt abspielen</div>
-      <iframe id="spotifyPlayer" class="spotify-player" src="" allow="encrypted-media" allowtransparency="true"></iframe>
-    </div>
+  <div class="spotify-player-container" id="playerContainer" style="display:none;">
+    <div class="overlay-bar" id="overlayBar">▶ Hier direkt abspielen</div>
+    <iframe id="spotifyPlayer" class="spotify-player" src="" allow="encrypted-media" allowtransparency="true"></iframe>
   </div>
+</div>
 
-  <script>
-    let supabase;
-    let currentSong = {};
-    let accessToken = '';
-    let spotifyTrackUrl = '';
-    let qrCodeUrl = '';
-    let selectedCategory = localStorage.getItem('selectedCategory') || '';
-    let playedSongsPerCategory = {};
+<script>
+  // ─── Konfiguration ────────────────────────────────────────────────────────
+  const SUPABASE_URL = 'https://qpatvrdifqzlmcxcolwc.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwYXR2cmRpZnF6bG1jeGNvbHdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NTgxOTgsImV4cCI6MjA4OTMzNDE5OH0.kqM6mNwoUPiNq23xMD70MoNG_V8MstTKrtnPV86tXZ4';
 
-    window.onload = function () {
-            const supabaseUrl = 'https://qpatvrdifqzlmcxcolwc.supabase.co'; // Deine Supabase-URL
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwYXR2cmRpZnF6bG1jeGNvbHdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NTgxOTgsImV4cCI6MjA4OTMzNDE5OH0.kqM6mNwoUPiNq23xMD70MoNG_V8MstTKrtnPV86tXZ4'; // Dein API-Schlüssel
-      supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+  // FIX 5: Spotify-Credentials gehören ins Backend!
+  // Für lokale Tests kannst du sie hier temporär eintragen,
+  // aber NIEMALS so in Produktion deployen.
+  const SPOTIFY_CLIENT_ID     = 'DEINE_CLIENT_ID';
+  const SPOTIFY_CLIENT_SECRET = 'DEIN_CLIENT_SECRET';
+  // ─────────────────────────────────────────────────────────────────────────
 
-      getSpotifyAccessToken();
-      loadCategories();
+  let supabaseClient;
+  let currentSong      = {};
+  let accessToken      = '';
+  let selectedCategory = localStorage.getItem('selectedCategory') || '';
+  let playedSongsPerCategory = {};
 
-      document.getElementById('categoryFilter').addEventListener('change', function () {
-        selectedCategory = this.value;
-        localStorage.setItem('selectedCategory', selectedCategory);
-        if (!playedSongsPerCategory[selectedCategory]) {
-          playedSongsPerCategory[selectedCategory] = [];
-        }
-        updateBackgroundByCategory(selectedCategory);
-        getRandomSongFromDB();
-      });
+  // ─── Startup: erst Supabase initialisieren, dann sequenziell laden ───────
+  // FIX 2: Alles in async-Kette – keine parallelen Rennen mehr
+  window.addEventListener('DOMContentLoaded', async () => {
+    // FIX 1: supabase ist jetzt garantiert geladen (kein defer)
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      setTimeout(() => {
-        if (selectedCategory) {
-          document.getElementById('categoryFilter').value = selectedCategory;
-          updateBackgroundByCategory(selectedCategory);
-        }
-      }, 500);
-    };
-
-    function getSpotifyAccessToken() {
-      const CLIENT_ID = 'Todo für später';
-      const CLIENT_SECRET = 'Todo für später';
-      const url = 'https://accounts.spotify.com/api/token';
-      const headers = {
-        'Authorization': 'Basic ' + btoa(CLIENT_ID + ':' + CLIENT_SECRET),
-        'Content-Type': 'application/x-www-form-urlencoded',
-      };
-      const body = 'grant_type=client_credentials';
-
-      $.post({ url, headers, data: body }, function (response) {
-        accessToken = response.access_token;
-        getRandomSongFromDB();
-      }).fail(function () {
-        alert("Fehler beim Abrufen des Spotify-Tokens.");
-      });
-    }
-
-    async function loadCategories() {
-  let allCategories = [];
-  let page = 0;
-  let moreData = true;
-
-  while (moreData) {
-    const { data, error } = await supabase
-      .from('Songs')
-      .select('category')
-      .range(page * 1000, (page + 1) * 1000 - 1); // 1000 ist das Limit pro Seite
-
-    if (error) {
-      console.error('Fehler beim Laden der Kategorien:', error);
-      return;
-    }
-
-    if (data && data.length > 0) {
-      allCategories = allCategories.concat(data.map(song => song.category).filter(Boolean));
-    }
-
-    if (data.length < 1000) {
-      moreData = false;  // Stoppt die Schleife, wenn weniger als 1000 Datensätze auf der letzten Seite
-    }
-
-    page++;
-  }
-
-  const uniqueCategories = [...new Set(allCategories)];
-  const select = document.getElementById('categoryFilter');
-
-  uniqueCategories.forEach(category => {
-    const option = document.createElement('option');
-    option.value = category;
-    option.textContent = category;
-    select.appendChild(option);
+    await loadCategories();        // erst Kategorien laden …
+    await fetchSpotifyToken();     // … dann Spotify-Token …
+    await getRandomSongFromDB();   // … dann erst Song abrufen
   });
-}
 
-    async function getRandomSongFromDB() {
-  let allSongs = [];
-  let page = 0;
-  let moreData = true;
+  // ─── Spotify Token ────────────────────────────────────────────────────────
+  async function fetchSpotifyToken() {
+  const resp = await fetch(
+    "https://qpatvrdifqzlmcxcolwc.supabase.co/functions/v1/spotify-token",
+    { headers: { "Authorization": `Bearer ${SUPABASE_KEY}` } }
+  );
+  const data = await resp.json();
+  accessToken = data.access_token;
+},
+        body: 'grant_type=client_credentials',
+      });
+      const data = await resp.json();
+      accessToken = data.access_token;
+    } catch (err) {
+      setStatus('⚠️ Spotify-Token konnte nicht geladen werden.');
+      console.error(err);
+    }
+  }
 
-  while (moreData) {
-    let query = supabase.from('Songs').select('id, name, spotify_id, category');
+  // ─── Kategorien laden ─────────────────────────────────────────────────────
+  async function loadCategories() {
+    setStatus('Kategorien werden geladen …');
+    let allCategories = [];
+    let page = 0;
 
-    if (selectedCategory) {
-      query = query.eq('category', selectedCategory);
+    while (true) {
+      const { data, error } = await supabaseClient
+        .from('Songs')
+        .select('category')
+        .range(page * 1000, (page + 1) * 1000 - 1);
+
+      if (error) { console.error('Supabase Fehler:', error); break; }
+      if (!data || data.length === 0) break;
+
+      allCategories = allCategories.concat(data.map(s => s.category).filter(Boolean));
+
+      // FIX 4: Schleife sauber beenden
+      if (data.length < 1000) break;
+      page++;
     }
 
-    const { data, error } = await query.range(page * 1000, (page + 1) * 1000 - 1);
+    const unique = [...new Set(allCategories)].sort();
+    const select = document.getElementById('categoryFilter');
 
-    if (error || !data || data.length === 0) {
-      alert("Keine Songs gefunden.");
+    unique.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = cat;
+      select.appendChild(opt);
+    });
+
+    // FIX 6: localStorage-Wert erst NACH Befüllen setzen
+    if (selectedCategory) {
+      select.value = selectedCategory;
+      updateBackground(selectedCategory);
+    }
+
+    select.disabled = false;
+    select.addEventListener('change', function () {
+      selectedCategory = this.value;
+      localStorage.setItem('selectedCategory', selectedCategory);
+      updateBackground(selectedCategory);
+      getRandomSongFromDB();
+    });
+
+    setStatus('');
+  }
+
+  // ─── Zufälligen Song aus DB holen ────────────────────────────────────────
+  async function getRandomSongFromDB() {
+    setStatus('Song wird geladen …');
+    document.getElementById('revealSongButton').style.display = 'none';
+    document.getElementById('playerContainer').style.display  = 'none';
+    document.getElementById('songInfo').innerHTML = '';
+
+    let allSongs = [];
+    let page = 0;
+
+    while (true) {
+      let query = supabaseClient.from('Songs').select('id, name, spotify_id, category');
+      if (selectedCategory) query = query.eq('category', selectedCategory);
+
+      const { data, error } = await query.range(page * 1000, (page + 1) * 1000 - 1);
+
+      if (error || !data || data.length === 0) break;
+      allSongs = allSongs.concat(data);
+      if (data.length < 1000) break;
+      page++;
+    }
+
+    if (allSongs.length === 0) {
+      setStatus('Keine Songs gefunden.');
       return;
     }
 
-    allSongs = allSongs.concat(data);
+    // Gespielt-Liste verwalten
+    const cat = selectedCategory || '__all__';
+    if (!playedSongsPerCategory[cat]) playedSongsPerCategory[cat] = [];
+    const remaining = allSongs.filter(s => !playedSongsPerCategory[cat].includes(s.id));
 
-    if (data.length < 1000) {
-      moreData = false;
+    let pool = remaining;
+    if (pool.length === 0) {
+      playedSongsPerCategory[cat] = [];
+      pool = allSongs;
+      setStatus('Alle Songs gespielt – Liste zurückgesetzt!');
     }
 
-    page++;
+    const song = pool[Math.floor(Math.random() * pool.length)];
+    currentSong = song;
+    playedSongsPerCategory[cat].push(song.id);
+
+    // QR-Code anzeigen (Placeholder bis Spotify-Daten da sind)
+    document.getElementById('songInfo').innerHTML =
+      `<img class="qr-code" src="" alt="QR Code" id="qrCodeImage" />`;
+
+    await loadSpotifyTrackInfo(song.spotify_id);
+
+    // Player einblenden
+    document.getElementById('spotifyPlayer').src =
+      `https://open.spotify.com/embed/track/${song.spotify_id}`;
+    document.getElementById('playerContainer').style.display = 'flex';
+
+    // Auflösen-Button
+    const btn = document.getElementById('revealSongButton');
+    btn.style.display = 'inline-block';
+    btn.textContent   = '🔍 Auflösen';
+    btn.onclick       = revealSongInfo;
+
+    setStatus('');
   }
 
-  // Weiter mit der Auswahl eines zufälligen Songs aus der abgerufenen Liste
-  const alreadyPlayed = playedSongsPerCategory[selectedCategory] || [];
-  const remainingSongs = allSongs.filter(song => !alreadyPlayed.includes(song.id));
-
-  if (remainingSongs.length === 0) {
-    alert("Alle Songs in dieser Kategorie wurden gespielt. Die Liste wird zurückgesetzt!");
-    playedSongsPerCategory[selectedCategory] = [];
-    getRandomSongFromDB();
-    return;
-  }
-
-  const song = remainingSongs[Math.floor(Math.random() * remainingSongs.length)];
-  currentSong = song;
-
-  if (!playedSongsPerCategory[selectedCategory]) {
-    playedSongsPerCategory[selectedCategory] = [];
-  }
-  playedSongsPerCategory[selectedCategory].push(song.id);
-
-  document.getElementById('songInfo').innerHTML = '<img src="" alt="QR Code" id="qrCodeImage" />';
-
-  getSpotifyTrackInfoById(song.spotify_id);
-  const revealBtn = document.getElementById('revealSongButton');
-  revealBtn.style.display = 'inline';
-  revealBtn.innerText = 'Auflösen';
-  revealBtn.onclick = revealSongInfo;
-
-  // Spotify Player einbinden
-  const spotifyPlayer = document.getElementById('spotifyPlayer');
-  spotifyPlayer.src = `https://open.spotify.com/embed/track/${song.spotify_id}`;
-}
-
-    function getSpotifyTrackInfoById(spotifyId) {
-      if (!accessToken) {
-        console.warn("Noch kein Spotify-Token verfügbar.");
-        return;
-      }
-
-      $.ajax({
-        url: `https://api.spotify.com/v1/tracks/${spotifyId}`,
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-        success: function(song) {
-          spotifyTrackUrl = `https://open.spotify.com/track/${song.id}`;
-          qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(spotifyTrackUrl)}&size=300x300`;
-
-          currentSong.artist = song.artists[0].name;
-          currentSong.year = song.album.release_date.split('-')[0];
-          currentSong.album = song.album.name;
-          currentSong.album_cover = song.album.images[0].url;
-          currentSong.title = song.name;
-
-          // Hier wird die dominante Farbe des Albumcovers ermittelt
-          extractDominantColor(song.album.images[0].url);
-
-          const qrCodeImage = document.getElementById('qrCodeImage');
-          if (qrCodeImage) {
-            qrCodeImage.src = qrCodeUrl;
-            qrCodeImage.style.display = 'block';
-          }
-        },
-        error: function() {
-          alert('Fehler beim Abrufen des Songs per ID.');
-        }
+  // ─── Spotify Track-Info abrufen ───────────────────────────────────────────
+  async function loadSpotifyTrackInfo(spotifyId) {
+    if (!accessToken) return;
+    try {
+      const resp = await fetch(`https://api.spotify.com/v1/tracks/${spotifyId}`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
       });
+      const song = await resp.json();
+
+      currentSong.artist      = song.artists[0].name;
+      currentSong.year        = song.album.release_date.split('-')[0];
+      currentSong.album       = song.album.name;
+      currentSong.album_cover = song.album.images[0].url;
+      currentSong.title       = song.name;
+
+      const trackUrl = `https://open.spotify.com/track/${song.id}`;
+      const qrUrl    = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(trackUrl)}&size=300x300`;
+
+      const qrImg = document.getElementById('qrCodeImage');
+      if (qrImg) qrImg.src = qrUrl;
+
+      extractDominantColor(song.album.images[0].url);
+    } catch (err) {
+      console.error('Spotify-Fehler:', err);
+      setStatus('⚠️ Song-Infos konnten nicht geladen werden.');
     }
-
-    // Funktion zum Extrahieren der dominanten Farbe aus dem Albumcover
-    function extractDominantColor(imageUrl) {
-      const img = new Image();
-      img.src = imageUrl;
-      img.crossOrigin = "Anonymous";  // CORS für das Bild erlauben
-
-      img.onload = function() {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0, 20, 20);
-
-        // Pixeldaten des Bildes extrahieren
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const pixels = imageData.data;
-        const length = pixels.length;
-        let r = 0, g = 0, b = 0;
-
-        for (let i = 0; i < length; i += 4) {
-          r += pixels[i];
-          g += pixels[i + 1];
-          b += pixels[i + 2];
-        }
-
-        // Durchschnittliche Farbe berechnen
-        r = Math.floor(r / (length / 4));
-        g = Math.floor(g / (length / 4));
-        b = Math.floor(b / (length / 4));
-
-        // Farbe der Overlay-Bar anpassen
-        const overlayBar = document.querySelector('.overlay-bar');
-        overlayBar.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-      };
-    }
-
-    function revealSongInfo() {
-  const revealBtn = document.getElementById('revealSongButton');
-
-  // Player ausblenden
-  const playerContainer = document.querySelector('.spotify-player-container');
-  if (playerContainer) {
-    playerContainer.style.display = 'none';
   }
 
-  document.getElementById('songInfo').innerHTML = `
-    <h3>Titel: ${currentSong.title}</h3>
-    <p><strong>Interpret:</strong> ${currentSong.artist}</p>
-    <p><strong>Erscheinungsjahr:</strong> ${currentSong.year}</p>
-    <p><strong>Album:</strong> ${currentSong.album}</p>
-    <img src="${currentSong.album_cover}" alt="Album Cover" />
-  `;
+  // ─── Albumcover-Farbe extrahieren ─────────────────────────────────────────
+  function extractDominantColor(imageUrl) {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.src = imageUrl;
+    img.onload = function () {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 20;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, 20, 20);
+      const d = ctx.getImageData(0, 0, 20, 20).data;
+      let r = 0, g = 0, b = 0;
+      for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i+1]; b += d[i+2]; }
+      const px = d.length / 4;
+      r = Math.floor(r / px); g = Math.floor(g / px); b = Math.floor(b / px);
+      document.getElementById('overlayBar').style.backgroundColor = `rgb(${r},${g},${b})`;
+    };
+  }
 
-  revealBtn.innerText = 'Neuer Song';
-  revealBtn.onclick = function () {
-    // Player wieder einblenden
-    if (playerContainer) {
-      playerContainer.style.display = 'flex';
-    }
-    revealBtn.style.display = 'none';
-    getRandomSongFromDB();
-  };
-}
-    function updateBackgroundByCategory(category) {
-      const container = document.getElementById('mainContainer');
-      if (!category) {
-        container.style.background = '#2f2f45';
-        return;
-      }
+  // ─── Song auflösen ────────────────────────────────────────────────────────
+  function revealSongInfo() {
+    document.getElementById('playerContainer').style.display = 'none';
 
-      const hash = [...category].reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const hue1 = hash % 360;
-      const hue2 = (hue1 + 60) % 360;
-      container.style.background = `linear-gradient(135deg, hsl(${hue1}, 70%, 40%), hsl(${hue2}, 70%, 50%))`;
+    document.getElementById('songInfo').innerHTML = `
+      <img class="album-cover" src="${currentSong.album_cover}" alt="Album Cover" />
+      <p class="song-title">${currentSong.title}</p>
+      <p class="song-meta"><strong>${currentSong.artist}</strong></p>
+      <p class="song-meta">${currentSong.album} · ${currentSong.year}</p>
+    `;
+
+    const btn = document.getElementById('revealSongButton');
+    btn.textContent = '▶ Nächster Song';
+    btn.onclick = () => {
+      document.getElementById('playerContainer').style.display = 'flex';
+      getRandomSongFromDB();
+    };
+  }
+
+  // ─── Hintergrund nach Kategorie einfärben ─────────────────────────────────
+  function updateBackground(category) {
+    const container = document.getElementById('mainContainer');
+    if (!category) {
+      container.style.background = 'var(--card-bg)';
+      return;
     }
-  </script>
+    const hash = [...category].reduce((a, c) => a + c.charCodeAt(0), 0);
+    const h1 = hash % 360, h2 = (h1 + 60) % 360;
+    container.style.background =
+      `linear-gradient(135deg, hsl(${h1},55%,22%), hsl(${h2},55%,30%))`;
+  }
+
+  // ─── Hilfsfunktion: Statusnachricht ──────────────────────────────────────
+  function setStatus(msg) {
+    document.getElementById('statusMsg').textContent = msg;
+  }
+</script>
 </body>
 </html>
