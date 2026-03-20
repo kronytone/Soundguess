@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SoundGuess 🔊 – Dein Musikrätsel</title>
 
-  <!-- FIX 1: defer entfernt – Supabase muss synchron geladen sein -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
@@ -115,7 +114,6 @@
   .btn:active { transform: scale(0.98); }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* Song Info Area */
   #songInfo {
     min-height: 220px;
     margin-top: 1.5em;
@@ -153,11 +151,8 @@
     margin: 0.2em 0;
   }
 
-  .song-meta strong {
-    color: var(--text);
-  }
+  .song-meta strong { color: var(--text); }
 
-  /* Spotify Player */
   .spotify-player-container {
     position: relative;
     margin-top: 1.5em;
@@ -194,7 +189,6 @@
     border-radius: 12px;
   }
 
-  /* Status message */
   #statusMsg {
     margin-top: 1em;
     font-size: 0.85em;
@@ -202,7 +196,6 @@
     min-height: 1.2em;
   }
 
-  /* Animations */
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -240,47 +233,34 @@
   // ─── Konfiguration ────────────────────────────────────────────────────────
   const SUPABASE_URL = 'https://qpatvrdifqzlmcxcolwc.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwYXR2cmRpZnF6bG1jeGNvbHdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NTgxOTgsImV4cCI6MjA4OTMzNDE5OH0.kqM6mNwoUPiNq23xMD70MoNG_V8MstTKrtnPV86tXZ4';
-
-  // FIX 5: Spotify-Credentials gehören ins Backend!
-  // Für lokale Tests kannst du sie hier temporär eintragen,
-  // aber NIEMALS so in Produktion deployen.
-  const SPOTIFY_CLIENT_ID     = 'DEINE_CLIENT_ID';
-  const SPOTIFY_CLIENT_SECRET = 'DEIN_CLIENT_SECRET';
   // ─────────────────────────────────────────────────────────────────────────
 
   let supabaseClient;
-  let currentSong      = {};
-  let accessToken      = '';
-  let selectedCategory = localStorage.getItem('selectedCategory') || '';
+  let currentSong            = {};
+  let accessToken            = '';
+  let selectedCategory       = localStorage.getItem('selectedCategory') || '';
   let playedSongsPerCategory = {};
 
-  // ─── Startup: erst Supabase initialisieren, dann sequenziell laden ───────
-  // FIX 2: Alles in async-Kette – keine parallelen Rennen mehr
+  // ─── Startup ──────────────────────────────────────────────────────────────
   window.addEventListener('DOMContentLoaded', async () => {
-    // FIX 1: supabase ist jetzt garantiert geladen (kein defer)
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    await loadCategories();        // erst Kategorien laden …
-    await fetchSpotifyToken();     // … dann Spotify-Token …
-    await getRandomSongFromDB();   // … dann erst Song abrufen
+    await loadCategories();
+    await fetchSpotifyToken();
+    await getRandomSongFromDB();
   });
 
-  // ─── Spotify Token ────────────────────────────────────────────────────────
+  // ─── Spotify Token über Edge Function ────────────────────────────────────
   async function fetchSpotifyToken() {
-  const resp = await fetch(
-    "https://qpatvrdifqzlmcxcolwc.supabase.co/functions/v1/spotify-token",
-    { headers: { "Authorization": `Bearer ${SUPABASE_KEY}` } }
-  );
-  const data = await resp.json();
-  accessToken = data.access_token;
-},
-        body: 'grant_type=client_credentials',
-      });
+    try {
+      const resp = await fetch(
+        `${SUPABASE_URL}/functions/v1/spotify-token`,
+        { headers: { 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      );
       const data = await resp.json();
       accessToken = data.access_token;
     } catch (err) {
       setStatus('⚠️ Spotify-Token konnte nicht geladen werden.');
-      console.error(err);
+      console.error('Token-Fehler:', err);
     }
   }
 
@@ -300,8 +280,6 @@
       if (!data || data.length === 0) break;
 
       allCategories = allCategories.concat(data.map(s => s.category).filter(Boolean));
-
-      // FIX 4: Schleife sauber beenden
       if (data.length < 1000) break;
       page++;
     }
@@ -315,7 +293,6 @@
       select.appendChild(opt);
     });
 
-    // FIX 6: localStorage-Wert erst NACH Befüllen setzen
     if (selectedCategory) {
       select.value = selectedCategory;
       updateBackground(selectedCategory);
@@ -359,7 +336,6 @@
       return;
     }
 
-    // Gespielt-Liste verwalten
     const cat = selectedCategory || '__all__';
     if (!playedSongsPerCategory[cat]) playedSongsPerCategory[cat] = [];
     const remaining = allSongs.filter(s => !playedSongsPerCategory[cat].includes(s.id));
@@ -375,18 +351,15 @@
     currentSong = song;
     playedSongsPerCategory[cat].push(song.id);
 
-    // QR-Code anzeigen (Placeholder bis Spotify-Daten da sind)
     document.getElementById('songInfo').innerHTML =
       `<img class="qr-code" src="" alt="QR Code" id="qrCodeImage" />`;
 
     await loadSpotifyTrackInfo(song.spotify_id);
 
-    // Player einblenden
     document.getElementById('spotifyPlayer').src =
       `https://open.spotify.com/embed/track/${song.spotify_id}`;
     document.getElementById('playerContainer').style.display = 'flex';
 
-    // Auflösen-Button
     const btn = document.getElementById('revealSongButton');
     btn.style.display = 'inline-block';
     btn.textContent   = '🔍 Auflösen';
@@ -474,7 +447,7 @@
       `linear-gradient(135deg, hsl(${h1},55%,22%), hsl(${h2},55%,30%))`;
   }
 
-  // ─── Hilfsfunktion: Statusnachricht ──────────────────────────────────────
+  // ─── Statusnachricht ──────────────────────────────────────────────────────
   function setStatus(msg) {
     document.getElementById('statusMsg').textContent = msg;
   }
