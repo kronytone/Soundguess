@@ -257,6 +257,13 @@
         { headers: { 'Authorization': `Bearer ${SUPABASE_KEY}` } }
       );
       const data = await resp.json();
+
+      if (!resp.ok || !data.access_token) {
+        setStatus(`⚠️ Token-Fehler: ${data.message || JSON.stringify(data)}`);
+        console.error('Token-Antwort:', data);
+        return;
+      }
+
       accessToken = data.access_token;
     } catch (err) {
       setStatus('⚠️ Spotify-Token konnte nicht geladen werden.');
@@ -381,28 +388,49 @@
 
   // ─── Spotify Track-Info abrufen ───────────────────────────────────────────
   async function loadSpotifyTrackInfo(spotifyId) {
-    if (!accessToken) return;
+    // Token fehlt? Einmal neu versuchen zu holen
+    if (!accessToken) {
+      await fetchSpotifyToken();
+    }
+    if (!accessToken) {
+      setStatus('⚠️ Kein Spotify-Token verfügbar. Ist die Edge Function deployed?');
+      return;
+    }
     try {
       const resp = await fetch(`https://api.spotify.com/v1/tracks/${spotifyId}`, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
-      const song = await resp.json();
 
-      currentSong.artist      = song.artists[0].name;
-      currentSong.year        = song.album.release_date.split('-')[0];
-      currentSong.album       = song.album.name;
-      currentSong.album_cover = song.album.images[0].url;
-      currentSong.title       = song.name;
+      if (!resp.ok) {
+        if (resp.status === 401) {
+          // Token abgelaufen – einmal erneuern und nochmal versuchen
+          accessToken = '';
+          await fetchSpotifyToken();
+          return loadSpotifyTrackInfo(spotifyId);
+        }
+        const errText = await resp.text();
+        setStatus(`⚠️ Spotify Fehler ${resp.status}: ${errText}`);
+        return;
+      }
 
-      const trackUrl = `https://open.spotify.com/track/${song.id}`;
-      const qrUrl    = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(trackUrl)}&size=300x300`;
+      const spotifyData = await resp.json();
 
+      // Sicherheitscheck: hat die Antwort die erwarteten Felder?
+      if (!spotifyData.artists || !spotifyData.album) {
+        setStatus(`⚠️ Unerwartete Spotify-Antwort: ${JSON.stringify(spotifyData).slice(0, 100)}`);
+        return;
+      }
 
+      currentSong.artist      = spotifyData.artists[0].name;
+      currentSong.year        = spotifyData.album.release_date.split('-')[0];
+      currentSong.album       = spotifyData.album.name;
+      currentSong.album_cover = spotifyData.album.images[0].url;
+      currentSong.title       = spotifyData.name;
 
-      extractDominantColor(song.album.images[0].url);
+      extractDominantColor(spotifyData.album.images[0].url);
     } catch (err) {
       console.error('Spotify-Fehler:', err);
-      setStatus('⚠️ Song-Infos konnten nicht geladen werden.');
+      setStatus(`⚠️ Netzwerkfehler: ${err.message}`);
     }
   }
 
